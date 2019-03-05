@@ -6,25 +6,26 @@ import (
 	"io"
 )
 
+// Unsubscribe represents the MQTT Unsubscribe  packet.
 type Unsubscribe struct {
 	FixHeader *FixHeader
-	PacketId  PacketId
+	PacketID  PacketID
 
 	Topics []string
 }
 
-func (c *Unsubscribe) String() string {
-	return fmt.Sprintf("Unsubscribe, Pid: %v, Topics: %v", c.PacketId, c.Topics)
+func (p *Unsubscribe) String() string {
+	return fmt.Sprintf("Unsubscribe, Pid: %v, Topics: %v", p.PacketID, p.Topics)
 }
 
-//suback
+// NewUnSubBack returns the Unsuback struct which is the ack packet of the Unsubscribe packet.
 func (p *Unsubscribe) NewUnSubBack() *Unsuback {
 	fh := &FixHeader{PacketType: UNSUBACK, Flags: 0, RemainLength: 2}
-	unSuback := &Unsuback{FixHeader: fh, PacketId: p.PacketId}
+	unSuback := &Unsuback{FixHeader: fh, PacketID: p.PacketID}
 	return unSuback
 }
 
-//构建一个subscribe包
+// NewUnsubscribePacket returns a Unsubscribe instance by the given FixHeader and io.Reader.
 func NewUnsubscribePacket(fh *FixHeader, r io.Reader) (*Unsubscribe, error) {
 	p := &Unsubscribe{FixHeader: fh}
 	//判断 标志位 flags 是否合法[MQTT-3.10.1-1]
@@ -35,21 +36,22 @@ func NewUnsubscribePacket(fh *FixHeader, r io.Reader) (*Unsubscribe, error) {
 	return p, err
 }
 
-func (c *Unsubscribe) Pack(w io.Writer) error {
-	c.FixHeader = &FixHeader{PacketType: UNSUBSCRIBE, Flags: FLAG_UNSUBSCRIBE}
+// Pack encodes the packet struct into bytes and writes it into io.Writer.
+func (p *Unsubscribe) Pack(w io.Writer) error {
+	p.FixHeader = &FixHeader{PacketType: UNSUBSCRIBE, Flags: FLAG_UNSUBSCRIBE}
 	buf := make([]byte, 0, 256)
 	pid := make([]byte, 2)
-	binary.BigEndian.PutUint16(pid, c.PacketId)
+	binary.BigEndian.PutUint16(pid, p.PacketID)
 	buf = append(buf, pid...)
-	for _, topic := range c.Topics {
+	for _, topic := range p.Topics {
 		topicName, _, erro := EncodeUTF8String([]byte(topic))
 		buf = append(buf, topicName...)
 		if erro != nil {
 			return erro
 		}
 	}
-	c.FixHeader.RemainLength = len(buf)
-	err := c.FixHeader.Pack(w)
+	p.FixHeader.RemainLength = len(buf)
+	err := p.FixHeader.Pack(w)
 	if err != nil {
 		return err
 	}
@@ -57,13 +59,14 @@ func (c *Unsubscribe) Pack(w io.Writer) error {
 	return err
 }
 
+// Unpack read the packet bytes from io.Reader and decodes it into the packet struct.
 func (p *Unsubscribe) Unpack(r io.Reader) error {
 	restBuffer := make([]byte, p.FixHeader.RemainLength)
 	_, err := io.ReadFull(r, restBuffer)
 	if err != nil {
 		return err
 	}
-	p.PacketId = binary.BigEndian.Uint16(restBuffer[0:2])
+	p.PacketID = binary.BigEndian.Uint16(restBuffer[0:2])
 
 	restBuffer = restBuffer[2:]
 	for {

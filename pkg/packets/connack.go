@@ -5,15 +5,17 @@ import (
 	"io"
 )
 
+// There are the possible code in the connack packet.
 const (
-	CODE_ACCEPTED                      = 0x00
-	CODE_UNACCEPTABLE_PROTOCOL_VERSION = 0x01
-	CODE_IDENTIFIER_REJECTED           = 0x02
-	CODE_SERVER_UNAVAILABLE            = 0x03
-	CODE_BAD_USERNAME_OR_PSW           = 0x04
-	CODE_NOT_AUTHORIZED                = 0x05
+	CodeAccepted                    = 0x00
+	CodeUnacceptableProtocolVersion = 0x01
+	CodeIdentifierRejected          = 0x02
+	CodeServerUnavaliable           = 0x03
+	CodeBadUsernameorPsw            = 0x04
+	CodeNotAuthorized               = 0x05
 )
 
+// Connack represents the MQTT Connack  packet
 type Connack struct {
 	FixHeader      *FixHeader
 	Code           byte
@@ -24,6 +26,7 @@ func (c *Connack) String() string {
 	return fmt.Sprintf("Connack, Code:%v, SessionPresent:%v", c.Code, c.SessionPresent)
 }
 
+// Pack encodes the packet struct into bytes and writes it into io.Writer.
 func (c *Connack) Pack(w io.Writer) error {
 	var err error
 	c.FixHeader = &FixHeader{PacketType: CONNACK, Flags: FLAG_RESERVED, RemainLength: 2}
@@ -38,6 +41,7 @@ func (c *Connack) Pack(w io.Writer) error {
 	return err
 }
 
+// Unpack read the packet bytes from io.Reader and decodes it into the packet struct
 func (c *Connack) Unpack(r io.Reader) error {
 	restBuffer := make([]byte, c.FixHeader.RemainLength)
 	_, err := io.ReadFull(r, restBuffer)
@@ -47,7 +51,7 @@ func (c *Connack) Unpack(r io.Reader) error {
 	if (127 & (restBuffer[0] >> 1)) > 0 {
 		return ErrInvalConnAcknowledgeFlags
 	}
-	if restBuffer[1] > 0 && restBuffer[0] != CODE_ACCEPTED { //[MQTT-3.2.2-4]
+	if restBuffer[1] > 0 && restBuffer[0] != CodeAccepted { //[MQTT-3.2.2-4]
 		return ErrInvalSessionPresent
 	}
 	c.SessionPresent = int(restBuffer[0])
@@ -55,6 +59,7 @@ func (c *Connack) Unpack(r io.Reader) error {
 	return nil
 }
 
+// NewConnackPacket returns a Connack instance by the given FixHeader and io.Reader
 func NewConnackPacket(fh *FixHeader, r io.Reader) (*Connack, error) {
 	p := &Connack{FixHeader: fh}
 	if fh.Flags != FLAG_RESERVED {

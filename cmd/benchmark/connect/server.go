@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// Server represents the connect benchmark server.
 type Server struct {
 	Options    Options
 	wg         sync.WaitGroup
@@ -19,10 +20,10 @@ type Server struct {
 	connected  int64 //connected client
 }
 
-func (srv *Server) connect(clientId string) (mqtt.Client, error) {
+func (srv *Server) connect(clientID string) (mqtt.Client, error) {
 	opts := mqtt.NewClientOptions()
 	opts.SetUsername(srv.Options.Username)
-	opts.SetClientID(clientId)
+	opts.SetClientID(clientID)
 	opts.SetPassword(srv.Options.Password)
 	opts.SetCleanSession(srv.Options.CleanSession)
 	opts.SetProtocolVersion(4)
@@ -66,6 +67,7 @@ func (srv *Server) displayProgress(ctx context.Context) {
 	}
 }
 
+// Run starts the server.
 func (srv *Server) Run(ctx context.Context) {
 	srv.StartAt = time.Now()
 	go srv.displayProgress(ctx)

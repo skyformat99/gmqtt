@@ -1,11 +1,11 @@
 package restapi
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 )
 
+// DataProvider interface provides a mechanism to paginate data
 type DataProvider interface {
 	Models() interface{}
 	Count() int
@@ -13,6 +13,7 @@ type DataProvider interface {
 	Pagination() *Pagination
 }
 
+// SliceDataProvider implements DataProvider
 type SliceDataProvider struct {
 	allModels  interface{}
 	totalCount int
@@ -20,33 +21,34 @@ type SliceDataProvider struct {
 	Pager      *Pagination
 }
 
+// Pagination represents information relevant to pagination of data items.
 type Pagination struct {
 	Page       int
 	PageSize   int
 	TotalCount int
 }
 
+// PageCount returns the page count.
 func (p *Pagination) PageCount() int {
 	if p.PageSize < 1 {
 		if p.TotalCount > 0 {
 			return 1
-		} else {
-			return 0
 		}
+		return 0
 	}
 	return (p.TotalCount + p.PageSize - 1) / p.PageSize
 
 }
 
+// Offset returns the offset of current page.
 func (p *Pagination) Offset() int {
 	if p.PageSize < 1 {
 		return 0
-	} else {
-		return p.Page * p.PageSize
 	}
-
+	return p.Page * p.PageSize
 }
 
+// SetModels sets the models into DataProvide.
 func (cp *SliceDataProvider) SetModels(models interface{}) {
 	if reflect.TypeOf(models).Kind() != reflect.Slice {
 		panic(fmt.Sprintf("invalid models type,want slice, but got %s", reflect.TypeOf(models).Kind()))
@@ -56,11 +58,12 @@ func (cp *SliceDataProvider) SetModels(models interface{}) {
 
 }
 
+// Models set the models of current page into out param.
 func (cp *SliceDataProvider) Models(out interface{}) error {
 	totalCount := cp.TotalCount()
 	rv := reflect.ValueOf(out)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return errors.New(fmt.Sprintf("invalid value,want reflect.Ptr or not nil, got %s", reflect.TypeOf(out).Kind()))
+		return fmt.Errorf("invalid value,want reflect.Ptr or not nil, got %s", reflect.TypeOf(out).Kind())
 	}
 	e := rv.Elem()
 	if totalCount == 0 {
@@ -94,13 +97,18 @@ func (cp *SliceDataProvider) Models(out interface{}) error {
 	cp.count = totalCount
 	return nil
 }
+
+// Count returns the item count of current page.
 func (cp *SliceDataProvider) Count() int {
 	return cp.count
 }
+
+// TotalCount returns the total count of all models
 func (cp *SliceDataProvider) TotalCount() int {
 	return cp.totalCount
 }
 
+// Pagination returns the Pagination struct.
 func (cp *SliceDataProvider) Pagination() *Pagination {
 	return cp.Pager
 }
